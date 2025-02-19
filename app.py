@@ -21,7 +21,8 @@ if openai_api_key:
                 max_tokens=300,
                 temperature=0.6    
             )  
-        return response["choices"][0]["message"]["content"].strip()
+        #return response["choices"][0]["message"]["content"].strip()
+        return response.choices[0].message.content.strip()
 
     st.title("MRI Report AI Assistant")
     # File uploader
