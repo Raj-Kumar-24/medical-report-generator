@@ -33,38 +33,47 @@ if st.session_state["openai_api_key"]:
         with st.spinner("Extracting text from PDF..."): 
             report_text = extract_text_from_pdf(uploaded_file) 
             st.text_area("Extracted MRI Report:", report_text, height=250)
+            st.session_state["report_text"] = report_text
+
+    if "report_text" in st.session_state and st.session_state["report_text"].strip():
         if st.button("Generate Reports"):
-            if report_text.strip():
-                st.subheader("AI-Generated Reports")
-                
-                summary_prompt = f"Summarize this MRI report: {report_text}"
-                patient_friendly_prompt = f"Explain this MRI report in simple terms for a patient: {report_text}"
-                recommendation_prompt = f"Based on this MRI report, provide recommendations for the next steps: {report_text}"
-                
-                with st.spinner("Generating Summary..."):
-                    summary = generate_report(summary_prompt)
-                    st.write("### Summary:")
-                    st.write(summary)
-                
-                with st.spinner("Generating Patient-Friendly Report..."):
-                    patient_friendly = generate_report(patient_friendly_prompt)
-                    st.write("### Patient-Friendly Report:")
-                    st.write(patient_friendly)
-                
-                with st.spinner("Generating Recommendations..."):
-                    recommendation = generate_report(recommendation_prompt)
-                    st.write("### Recommendations:")
-                    st.write(recommendation)
-                
-                st.subheader("Radiologist Review")
-                st.write("Rate the quality of the AI-generated reports:")
-                summary_rating = st.slider("Summary Quality", 1, 5, 3, key="summary_rating")
-                patient_friendly_rating = st.slider("Patient-Friendly Report Quality", 1, 5, 3, key="patient_friendly_rating")
-                recommendation_rating = st.slider("Recommendation Quality", 1, 5, 3, key="recommendation_rating")
-                
-                if st.button("Submit Ratings"):
-                    st.success("Ratings submitted! Thank you for your feedback.")
-            else:
-                st.warning("No text extracted from PDF. Please upload a valid MRI report.")
+            st.subheader("AI-Generated Reports")
+            
+            summary_prompt = f"Summarize this MRI report: {st.session_state['report_text']}"
+            patient_friendly_prompt = f"Explain this MRI report in simple terms for a patient: {st.session_state['report_text']}"
+            recommendation_prompt = f"Based on this MRI report, provide recommendations for the next steps: {st.session_state['report_text']}"
+            
+            with st.spinner("Generating Summary..."):
+                st.session_state["summary"] = generate_report(summary_prompt)
+                st.write("### Summary:")
+                st.write(st.session_state["summary"])
+            
+            with st.spinner("Generating Patient-Friendly Report..."):
+                st.session_state["patient_friendly"] = generate_report(patient_friendly_prompt)
+                st.write("### Patient-Friendly Report:")
+                st.write(st.session_state["patient_friendly"])
+            
+            with st.spinner("Generating Recommendations..."):
+                st.session_state["recommendation"] = generate_report(recommendation_prompt)
+                st.write("### Recommendations:")
+                st.write(st.session_state["recommendation"])
+
+    if "summary" in st.session_state:
+        st.subheader("AI-Generated Reports")
+        st.write("### Summary:")
+        st.write(st.session_state["summary"])
+        st.write("### Patient-Friendly Report:")
+        st.write(st.session_state["patient_friendly"])
+        st.write("### Recommendations:")
+        st.write(st.session_state["recommendation"])
+
+        st.subheader("Radiologist Review")
+        st.write("Rate the quality of the AI-generated reports:")
+        summary_rating = st.slider("Summary Quality", 1, 5, 3, key="summary_rating")
+        patient_friendly_rating = st.slider("Patient-Friendly Report Quality", 1, 5, 3, key="patient_friendly_rating")
+        recommendation_rating = st.slider("Recommendation Quality", 1, 5, 3, key="recommendation_rating")
+        
+        if st.button("Submit Ratings"):
+            st.success("Ratings submitted! Thank you for your feedback.")
 else:
     st.warning("Please enter your OpenAI API Key.")
