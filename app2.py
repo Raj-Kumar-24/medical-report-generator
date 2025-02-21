@@ -2,6 +2,7 @@ import streamlit as st
 import openai 
 import PyPDF2
 from openai import OpenAI
+from fpdf import FPDF
 
 # User input for OpenAI API Key
 if "openai_api_key" not in st.session_state:
@@ -26,6 +27,37 @@ if st.session_state["openai_api_key"]:
             )  
         return response.choices[0].message.content.strip()
 
+    def save_to_pdf(summary, patient_friendly, recommendation, summary_rating, patient_friendly_rating, recommendation_rating, hallucination):
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        
+        pdf.cell(200, 10, txt="AI-Generated MRI Report", ln=True, align='C')
+        pdf.ln(10)
+        
+        pdf.cell(200, 10, txt="Summary:", ln=True)
+        pdf.multi_cell(0, 10, txt=summary)
+        pdf.ln(5)
+        
+        pdf.cell(200, 10, txt="Patient-Friendly Report:", ln=True)
+        pdf.multi_cell(0, 10, txt=patient_friendly)
+        pdf.ln(5)
+        
+        pdf.cell(200, 10, txt="Recommendations:", ln=True)
+        pdf.multi_cell(0, 10, txt=recommendation)
+        pdf.ln(10)
+        
+        pdf.cell(200, 10, txt="Ratings:", ln=True)
+        pdf.cell(200, 10, txt=f"Summary Quality: {summary_rating}", ln=True)
+        pdf.cell(200, 10, txt=f"Patient-Friendly Report Quality: {patient_friendly_rating}", ln=True)
+        pdf.cell(200, 10, txt=f"Recommendation Quality: {recommendation_rating}", ln=True)
+        pdf.ln(5)
+        
+        pdf.cell(200, 10, txt=f"Instances of Artificial Hallucinations: {hallucination}", ln=True)
+        
+        pdf.output("AI_Generated_MRI_Report.pdf")
+        return "AI_Generated_MRI_Report.pdf"
+
     st.title("MRI Report AI Assistant")
     # File uploader
     uploaded_file = st.file_uploader("Upload MRI Report (PDF)", type="pdf")
@@ -45,18 +77,12 @@ if st.session_state["openai_api_key"]:
             
             with st.spinner("Generating Summary..."):
                 st.session_state["summary"] = generate_report(summary_prompt)
-                st.write("### Summary:")
-                st.write(st.session_state["summary"])
             
             with st.spinner("Generating Patient-Friendly Report..."):
                 st.session_state["patient_friendly"] = generate_report(patient_friendly_prompt)
-                st.write("### Patient-Friendly Report:")
-                st.write(st.session_state["patient_friendly"])
             
             with st.spinner("Generating Recommendations..."):
                 st.session_state["recommendation"] = generate_report(recommendation_prompt)
-                st.write("### Recommendations:")
-                st.write(st.session_state["recommendation"])
 
     if "summary" in st.session_state:
         st.subheader("AI-Generated Reports")
@@ -73,7 +99,12 @@ if st.session_state["openai_api_key"]:
         patient_friendly_rating = st.slider("Patient-Friendly Report Quality", 1, 5, 3, key="patient_friendly_rating")
         recommendation_rating = st.slider("Recommendation Quality", 1, 5, 3, key="recommendation_rating")
         
+        hallucination = st.radio("Does the result have instances of artificial hallucinations?", ("Yes", "No"), key="hallucination")
+
         if st.button("Submit Ratings"):
+            pdf_path = save_to_pdf(st.session_state["summary"], st.session_state["patient_friendly"], st.session_state["recommendation"], summary_rating, patient_friendly_rating, recommendation_rating, hallucination)
+            with open(pdf_path, "rb") as pdf_file:
+                st.download_button(label="Download Report", data=pdf_file, file_name="AI_Generated_MRI_Report.pdf", mime="application/pdf")
             st.success("Ratings submitted! Thank you for your feedback.")
 else:
     st.warning("Please enter your OpenAI API Key.")
