@@ -85,7 +85,7 @@ if st.session_state["openai_api_key"]:
                 st.session_state["recommendation"] = generate_report(recommendation_prompt)
 
     if "summary" in st.session_state:
-        st.subheader("AI-Generated Reports")
+        #st.subheader("AI-Generated Reports")
         st.write("### Summary:")
         st.write(st.session_state["summary"])
         st.write("### Patient-Friendly Report:")
