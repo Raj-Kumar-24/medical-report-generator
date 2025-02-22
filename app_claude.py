@@ -1,33 +1,29 @@
 import streamlit as st 
+import anthropic 
 import PyPDF2
 from fpdf import FPDF
-import requests
 
-# User input for Claude AI API Key
-if "claude_api_key" not in st.session_state:
-    st.session_state["claude_api_key"] = ""
+# User input for anthropic API Key
+if "anthropic_api_key" not in st.session_state:
+    st.session_state["anthropic_api_key"] = ""
 
-st.session_state["claude_api_key"] = st.text_input("Enter your Claude AI API Key", type="password", value=st.session_state["claude_api_key"])
+st.session_state["anthropic_api_key"] = st.text_input("Enter your anthropic API Key", type="password", value=st.session_state["anthropic_api_key"])
 
-def generate_report(prompt, api_key):
-    headers = {
-        'Authorization': f'Bearer {api_key}',
-        'Content-Type': 'application/json',
-    }
-    json_data = {
-        'prompt': prompt,
-        'max_tokens': 300,
-        'temperature': 0.6,
-    }
-    response = requests.post('https://api.claude.ai/v1/completions', headers=headers, json=json_data)
-    response.raise_for_status()
-    return response.json()['choices'][0]['text'].strip()
+if st.session_state["anthropic_api_key"]:
+    client = anthropic.Anthropic(api_key=st.session_state["anthropic_api_key"])
 
-if st.session_state["claude_api_key"]:
     def extract_text_from_pdf(uploaded_file): 
         reader = PyPDF2.PdfReader(uploaded_file) 
         text = "".join([page.extract_text() for page in reader.pages if page.extract_text()]) 
         return text
+
+    def generate_report(prompt): 
+        response = client.messages.create(            
+                model="claude-3-5-sonnet-20241022",            
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=500   
+            )  
+        return response.content.strip()
 
     def save_to_pdf(summary, patient_friendly, recommendation, summary_rating, patient_friendly_rating, recommendation_rating, hallucination, comment, word_counts):
         pdf = FPDF()
@@ -89,13 +85,13 @@ if st.session_state["claude_api_key"]:
             recommendation_prompt = f"Please make a recommendation for the next step: {st.session_state['report_text']}"
             
             with st.spinner("Generating Summary..."):
-                st.session_state["summary"] = generate_report(summary_prompt, st.session_state["claude_api_key"])
+                st.session_state["summary"] = generate_report(summary_prompt)
             
             with st.spinner("Generating Patient-Friendly Report..."):
-                st.session_state["patient_friendly"] = generate_report(patient_friendly_prompt, st.session_state["claude_api_key"])
+                st.session_state["patient_friendly"] = generate_report(patient_friendly_prompt)
             
             with st.spinner("Generating Recommendations..."):
-                st.session_state["recommendation"] = generate_report(recommendation_prompt, st.session_state["claude_api_key"])
+                st.session_state["recommendation"] = generate_report(recommendation_prompt)
 
     if "summary" in st.session_state:
         st.subheader("AI-Generated Reports")
@@ -130,4 +126,4 @@ if st.session_state["claude_api_key"]:
                 st.download_button(label="Download Report", data=pdf_file, file_name="AI_Generated_MRI_Report.pdf", mime="application/pdf")
             st.success("Ratings submitted! Thank you for your feedback.")
 else:
-    st.warning("Please enter your Claude AI API Key.")
+    st.warning("Please enter your anthropic API Key.")
