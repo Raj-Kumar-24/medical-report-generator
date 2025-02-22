@@ -20,14 +20,14 @@ if st.session_state["openai_api_key"]:
 
     def generate_report(prompt): 
         response = client.chat.completions.create(            
-                model="gpt-3.5-turbo",            
+                model="gpt-4",            
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=300,
                 temperature=0.6    
             )  
         return response.choices[0].message.content.strip()
 
-    def save_to_pdf(summary, patient_friendly, recommendation, summary_rating, patient_friendly_rating, recommendation_rating, hallucination):
+    def save_to_pdf(summary, patient_friendly, recommendation, summary_rating, patient_friendly_rating, recommendation_rating, hallucination, comment, word_counts):
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=12)
@@ -54,6 +54,17 @@ if st.session_state["openai_api_key"]:
         pdf.ln(5)
         
         pdf.cell(200, 10, txt=f"Instances of Artificial Hallucinations: {hallucination}", ln=True)
+        
+        if hallucination == "Yes":
+            pdf.cell(200, 10, txt="Comments:", ln=True)
+            pdf.multi_cell(0, 10, txt=comment)
+            pdf.ln(5)
+        
+        pdf.cell(200, 10, txt="Word Counts:", ln=True)
+        pdf.cell(200, 10, txt=f"Original Report: {word_counts['original']}", ln=True)
+        pdf.cell(200, 10, txt=f"Summary: {word_counts['summary']}", ln=True)
+        pdf.cell(200, 10, txt=f"Patient-Friendly Report: {word_counts['patient_friendly']}", ln=True)
+        pdf.cell(200, 10, txt=f"Recommendations: {word_counts['recommendation']}", ln=True)
         
         pdf.output("AI_Generated_MRI_Report.pdf")
         return "AI_Generated_MRI_Report.pdf"
@@ -101,8 +112,18 @@ if st.session_state["openai_api_key"]:
         
         hallucination = st.radio("Does the result have instances of artificial hallucinations?", ("Yes", "No"), key="hallucination")
 
+        comment = ""
+        if hallucination == "Yes":
+            comment = st.text_area("Please provide your comments:")
+
         if st.button("Submit Ratings"):
-            pdf_path = save_to_pdf(st.session_state["summary"], st.session_state["patient_friendly"], st.session_state["recommendation"], summary_rating, patient_friendly_rating, recommendation_rating, hallucination)
+            word_counts = {
+                "original": len(st.session_state["report_text"].split()),
+                "summary": len(st.session_state["summary"].split()),
+                "patient_friendly": len(st.session_state["patient_friendly"].split()),
+                "recommendation": len(st.session_state["recommendation"].split())
+            }
+            pdf_path = save_to_pdf(st.session_state["summary"], st.session_state["patient_friendly"], st.session_state["recommendation"], summary_rating, patient_friendly_rating, recommendation_rating, hallucination, comment, word_counts)
             with open(pdf_path, "rb") as pdf_file:
                 st.download_button(label="Download Report", data=pdf_file, file_name="AI_Generated_MRI_Report.pdf", mime="application/pdf")
             st.success("Ratings submitted! Thank you for your feedback.")
