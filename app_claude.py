@@ -23,7 +23,7 @@ if st.session_state["anthropic_api_key"]:
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=500   
             )  
-        return response.content.strip()
+        return response['content'].strip()
 
     def save_to_pdf(summary, patient_friendly, recommendation, summary_rating, patient_friendly_rating, recommendation_rating, hallucination, comment, word_counts):
         pdf = FPDF()
